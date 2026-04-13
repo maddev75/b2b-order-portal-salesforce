@@ -1,0 +1,44 @@
+name: Salesforce CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: salesforce-cd-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Verify CLI
+        run: sf version
+
+      - name: Authenticate target org
+        shell: bash
+        run: |
+          AUTH_FILE="$(mktemp)"
+          printf '%s' "${{ secrets.SFDX_AUTH_URL_DEPLOY }}" > "$AUTH_FILE"
+          sf org login sfdx-url --sfdx-url-file "$AUTH_FILE" --alias deploy_target
+          rm -f "$AUTH_FILE"
+
+      - name: Deploy source to target org
+        run: |
+          sf project deploy start --target-org deploy_target
+
+      - name: Run Apex tests on target org
+        run: |
+          sf apex run test \
+            --target-org deploy_target \
+            --test-level RunLocalTests \
+            --wait 30
