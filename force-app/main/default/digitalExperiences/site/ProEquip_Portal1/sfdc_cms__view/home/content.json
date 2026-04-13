@@ -1,0 +1,78 @@
+{
+  "type" : "sfdc_cms__view",
+  "title" : "Home",
+  "contentBody" : {
+    "component" : {
+      "children" : [ {
+        "children" : [ {
+          "attributes" : {
+            "backgroundImageConfig" : "",
+            "backgroundImageOverlay" : "rgba(0,0,0,0)",
+            "componentSpacerSize" : "",
+            "layoutDirectionDesktop" : "row",
+            "layoutDirectionMobile" : "column",
+            "layoutDirectionTablet" : "column",
+            "maxContentWidth" : "",
+            "sectionColumnGutterWidth" : "",
+            "sectionConfig" : "{\"UUID\":\"b13739a5-c515-4c9c-83e5-639fb3c78852\",\"columns\":[{\"UUID\":\"e01e6a5f-77e5-430f-b0aa-819f28ccba3e\",\"columnName\":\"Column 1\",\"columnKey\":\"col1\",\"columnWidth\":\"12\",\"seedComponents\":null}]}",
+            "sectionMinHeight" : "",
+            "sectionVerticalAlign" : "flex-start"
+          },
+          "children" : [ {
+            "children" : [ {
+              "attributes" : {
+                "accountId" : "001J700000XkbEPIAZ",
+                "contactId" : "003J700000QJpquIAD"
+              },
+              "definition" : "c:orderApp",
+              "id" : "13f6e887-318d-4630-84a3-e0af8acc0a99",
+              "type" : "component"
+            }, {
+              "attributes" : {
+                "imageInfos" : "",
+                "richTextValue" : "<div style=\"display: flex; justify-content: center; align-items: center; margin: 50px 0; flex-direction: column; text-align: center;\"><div style=\"background-image: url(assets/img/desert.svg) !important; background-size: cover; background-position: center; height: 300px; width: 100%; max-width: 600px; min-width: 300px;\"></div><h1 class=\"slds-text-heading_medium slds-p-bottom_x-small\">Start Building Your Page</h1> <div>Drag and drop a component into the content slots.</div></div>"
+              },
+              "definition" : "community_builder:htmlEditor",
+              "id" : "52ef8f5a-c558-4890-be85-959f4d469397",
+              "type" : "component"
+            } ],
+            "id" : "e01e6a5f-77e5-430f-b0aa-819f28ccba3e",
+            "name" : "col1",
+            "title" : "Column 1",
+            "type" : "region"
+          } ],
+          "definition" : "community_layout:section",
+          "id" : "b13739a5-c515-4c9c-83e5-639fb3c78852",
+          "type" : "component"
+        } ],
+        "id" : "085e5ea6-8e0f-4da1-ba2f-3772eb6b3636",
+        "name" : "content",
+        "title" : "Content",
+        "type" : "region"
+      }, {
+        "children" : [ {
+          "attributes" : {
+            "customHeadTags" : "",
+            "description" : "",
+            "pageTitle" : "Home",
+            "recordId" : "{!recordId}"
+          },
+          "definition" : "community_builder:seoAssistant",
+          "id" : "658ffbc3-dc24-4315-a3c4-ed18691b8eb1",
+          "type" : "component"
+        } ],
+        "id" : "df0a840a-e30f-45f9-a1de-f7853a66735e",
+        "name" : "sfdcHiddenRegion",
+        "title" : "sfdcHiddenRegion",
+        "type" : "region"
+      } ],
+      "definition" : "community_layout:sldsFlexibleLayout",
+      "id" : "c48f7c8a-aa36-439e-8b2b-0c835561476e",
+      "type" : "component"
+    },
+    "dataProviders" : [ ],
+    "themeLayoutType" : "Inner",
+    "viewType" : "home"
+  },
+  "urlName" : "home"
+}

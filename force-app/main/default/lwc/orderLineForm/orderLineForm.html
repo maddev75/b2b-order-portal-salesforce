@@ -1,0 +1,47 @@
+<template>
+    <lightning-card title="Add Order Line" icon-name="standard:product">
+        <div class="slds-p-around_medium">
+
+            <template if:true={isLoading}>
+                <lightning-spinner
+                    alternative-text="Loading"
+                    size="medium">
+                </lightning-spinner>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_medium">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <lightning-combobox
+                name="product"
+                label="Product"
+                value={selectedProductId}
+                options={productOptions}
+                onchange={handleProductChange}>
+            </lightning-combobox>
+
+            <div class="slds-m-top_medium">
+                <lightning-input
+                    type="number"
+                    label="Quantity"
+                    value={quantity}
+                    min="1"
+                    onchange={handleQuantityChange}>
+                </lightning-input>
+            </div>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    label="Add Line"
+                    variant="brand"
+                    onclick={handleAddLine}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+
+        </div>
+    </lightning-card>
+</template>

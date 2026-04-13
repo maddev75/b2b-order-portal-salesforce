@@ -1,0 +1,22 @@
+<template>
+    <lightning-card title="ProEquip Portal" icon-name="standard:orders">
+        <div class="slds-p-around_medium">
+            <template if:true={showList}>
+                <c-order-list
+                    account-id={accountId}
+                    contact-id={contactId}
+                    onorderselected={handleOrderSelected}
+                >
+                </c-order-list>
+            </template>
+
+            <template if:true={showDetail}>
+                <c-order-detail
+                    order-id={selectedOrderId}
+                    onorderselected={handleOrderSelected}
+                    onbacktolist={handleBackToList}>
+                </c-order-detail>
+            </template>
+        </div>
+    </lightning-card>
+</template>

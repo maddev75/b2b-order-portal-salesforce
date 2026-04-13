@@ -1,0 +1,93 @@
+<template>
+    <lightning-card title="Order Detail" icon-name="standard:orders">
+        <div class="slds-p-around_medium">
+
+            <div class="slds-m-bottom_medium">
+                <lightning-button
+                    label="Back to List"
+                    onclick={handleBackToList}>
+                </lightning-button>
+
+                <lightning-button
+                    class="slds-m-left_small"
+                    label="Submit Order"
+                    variant="brand"
+                    onclick={handleSubmitOrder}
+                    disabled={isLoading}>
+                </lightning-button>
+            </div>
+
+            <template if:true={isLoading}>
+                <lightning-spinner
+                    alternative-text="Loading order detail"
+                    size="medium">
+                </lightning-spinner>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_medium">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <!--<template if:true={hasOrder}>
+                <div class="slds-box slds-m-bottom_medium">
+                    <p><strong>Order Name:</strong> {orderRecord.Name}</p>
+                    <p><strong>Status:</strong> {orderRecord.Status__c}</p>
+                    <p><strong>Order Date:</strong> {orderRecord.Order_Date__c}</p>
+                    <p><strong>Total Amount:</strong> {orderRecord.Total_Amount__c}</p>
+                    <p><strong>Payment Status:</strong> {orderRecord.Payment_Status__c}</p>
+                </div>
+
+                <template if:true={hasLines}>
+                    <lightning-datatable
+                        key-field="Id"
+                        data={orderLines}
+                        columns={lineColumns}
+                        hide-checkbox-column>
+                    </lightning-datatable>
+                </template>
+                <template if:true={isDraft}>
+                    <div class="slds-m-bottom_medium">
+                        <c-order-line-form
+                            order-id={orderId}
+                            onlineadded={handleLineAdded}>
+                        </c-order-line-form>
+                    </div>
+                </template>
+
+                <template if:true={hasNoLines}>
+                    <div class="slds-text-body_regular">
+                        This order has no lines yet.
+                    </div>
+                </template>
+            </template>-->
+            <template if:true={hasOrder}>
+                <div class="slds-box slds-m-bottom_medium">
+                    <p><strong>Order Name:</strong> {orderRecord.Name}</p>
+                    <p><strong>Status:</strong> {orderRecord.Status__c}</p>
+                    <p><strong>Order Date:</strong> {orderRecord.Order_Date__c}</p>
+                    <p><strong>Total Amount:</strong> {orderRecord.Total_Amount__c}</p>
+                    <p><strong>Payment Status:</strong> {orderRecord.Payment_Status__c}</p>
+                </div>
+            
+                <template if:true={isDraft}>
+                    <div class="slds-m-bottom_medium">
+                        <c-order-line-form
+                            order-id={orderId}
+                            onlineadded={handleLineAdded}>
+                        </c-order-line-form>
+                    </div>
+                </template>
+            
+                <c-order-line-table
+                    order-lines={orderLines}
+                    is-draft={isDraft}
+                    onlineupdated={handleLineUpdated}
+                    onlinedeleted={handleLineDeleted}>
+                </c-order-line-table>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>

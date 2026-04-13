@@ -1,0 +1,13 @@
+{
+  "orgName": "B2B Order Portal",
+  "edition": "Developer",
+  "features": ["Communities", "EnableSetPasswordInApi"],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    }
+  }
+}

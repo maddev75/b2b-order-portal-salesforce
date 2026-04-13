@@ -1,0 +1,79 @@
+<template>
+    <lightning-card title="Order Lines" icon-name="standard:product">
+        <div class="slds-p-around_medium">
+
+            <template if:true={isLoading}>
+                <lightning-spinner
+                    alternative-text="Loading order lines"
+                    size="medium">
+                </lightning-spinner>
+            </template>
+
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_medium">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <template if:true={hasLines}>
+                <template for:each={normalizedLines} for:item="line">
+                    <div key={line.Id} class="slds-box slds-m-bottom_small">
+                        <div class="slds-grid slds-wrap slds-gutters">
+
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                                <p><strong>Product:</strong> {line.productLabel}</p>
+                            </div>
+
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-12">
+                                <lightning-input
+                                    type="number"
+                                    label="Quantity"
+                                    value={line.editQuantity}
+                                    data-line-id={line.Id}
+                                    min="1"
+                                    onchange={handleQuantityChange}
+                                    disabled={disableActions}>
+                                </lightning-input>
+                            </div>
+
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-12">
+                                <p><strong>Unit Price:</strong> {line.Unit_Price__c}</p>
+                            </div>
+
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_2-of-12">
+                                <p><strong>Line Total:</strong> {line.Line_Total__c}</p>
+                            </div>
+
+                            <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-m-top_large">
+                                <lightning-button
+                                    label="Update"
+                                    variant="brand"
+                                    class="slds-m-right_small"
+                                    data-line-id={line.Id}
+                                    onclick={handleUpdateLine}
+                                    disabled={isActionDisabled}>
+                                </lightning-button>
+
+                                <lightning-button
+                                    label="Delete"
+                                    variant="destructive"
+                                    data-line-id={line.Id}
+                                    onclick={handleDeleteLine}
+                                    disabled={isActionDisabled}>
+                                </lightning-button>
+                            </div>
+
+                        </div>
+                    </div>
+                </template>
+            </template>
+
+            <template if:true={hasNoLines}>
+                <div class="slds-text-body_regular">
+                    This order has no lines yet.
+                </div>
+            </template>
+
+        </div>
+    </lightning-card>
+</template>
