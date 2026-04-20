@@ -164,7 +164,7 @@ private class OrderServiceTest {
         Product2 product2 = getProduct2();
 
         Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
-        Order_Line__c line1 = TestDataFactory.addOrderLine(orderRecord.Id, product1.Id, 2); // 200
+        TestDataFactory.addOrderLine(orderRecord.Id, product1.Id, 2); // 200
         Order_Line__c line2 = TestDataFactory.addOrderLine(orderRecord.Id, product2.Id, 1); // 250
 
         Test.startTest();
@@ -219,7 +219,7 @@ private class OrderServiceTest {
         System.assertEquals('Paid', refreshedOrder.Payment_Status__c);
 
         List<System_Log__c> logs = [
-            SELECT Name, Level__c, Status__c, Related_Order__c
+            SELECT Level__c, Context__c, Message__c, Status__c, Related_Order__c
             FROM System_Log__c
             WHERE Related_Order__c = :orderRecord.Id
         ];
@@ -229,13 +229,25 @@ private class OrderServiceTest {
         Boolean hasPaymentSuccess = false;
 
         for (System_Log__c logRecord : logs) {
-            if (logRecord.Name == 'ORDER_SUBMIT') {
+            if (
+                logRecord.Context__c == 'OrderService.submitOrder' &&
+                logRecord.Level__c == 'INFO' &&
+                logRecord.Status__c == 'Resolved'
+            ) {
                 hasOrderSubmit = true;
             }
-            if (logRecord.Name == 'PAYMENT_REQUEST') {
+            if (
+                logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
+                logRecord.Level__c == 'INFO' &&
+                logRecord.Status__c == 'Open'
+            ) {
                 hasPaymentRequest = true;
             }
-            if (logRecord.Name == 'PAYMENT_SUCCESS') {
+            if (
+                logRecord.Context__c == 'PaymentIntegrationService.applyGatewayResult' &&
+                logRecord.Level__c == 'INFO' &&
+                logRecord.Status__c == 'Resolved'
+            ) {
                 hasPaymentSuccess = true;
             }
         }
@@ -275,16 +287,34 @@ private class OrderServiceTest {
         System.assertEquals('Submitted', refreshedOrder.Status__c);
         System.assertEquals('Failed', refreshedOrder.Payment_Status__c);
 
-        System_Log__c failureLog = [
-            SELECT Name, Level__c, Status__c
+        List<System_Log__c> logs = [
+            SELECT Level__c, Context__c, Message__c, Status__c, Related_Order__c
             FROM System_Log__c
             WHERE Related_Order__c = :orderRecord.Id
-            AND Name = 'PAYMENT_FAILURE'
-            LIMIT 1
         ];
 
-        System.assertEquals('WARN', failureLog.Level__c);
-        System.assertEquals('Open', failureLog.Status__c);
+        Boolean hasPaymentRequest = false;
+        Boolean hasPaymentFailure = false;
+
+        for (System_Log__c logRecord : logs) {
+            if (
+                logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
+                logRecord.Level__c == 'INFO' &&
+                logRecord.Status__c == 'Open'
+            ) {
+                hasPaymentRequest = true;
+            }
+            if (
+                logRecord.Context__c == 'PaymentIntegrationService.applyGatewayResult' &&
+                logRecord.Level__c == 'WARN' &&
+                logRecord.Status__c == 'Open'
+            ) {
+                hasPaymentFailure = true;
+            }
+        }
+
+        System.assertEquals(true, hasPaymentRequest, 'PAYMENT_REQUEST log should exist.');
+        System.assertEquals(true, hasPaymentFailure, 'PAYMENT_FAILURE log should exist.');
     }
 
     @isTest
@@ -321,7 +351,9 @@ private class OrderServiceTest {
             )
         );
 
+        Test.startTest();
         OrderService.submitOrder(orderRecord.Id);
+        Test.stopTest();
 
         try {
             Test.startTest();
@@ -350,7 +382,9 @@ private class OrderServiceTest {
             )
         );
 
+        Test.startTest();
         OrderService.submitOrder(orderRecord.Id);
+        Test.stopTest();
 
         try {
             Test.startTest();
