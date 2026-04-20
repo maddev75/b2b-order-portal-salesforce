@@ -9,7 +9,7 @@ public with sharing class PaymentIntegrationService {
             'PAYMENT_REQUEST',
             'PaymentIntegrationService.processPayment',
             'HTTP payment processing started.',
-            'STARTED',
+            'Open',
             orderRecord.Id,
             null
         );
@@ -56,14 +56,14 @@ public with sharing class PaymentIntegrationService {
             return;
         }
 
-        orderRecord.Payment_Status__c = 'Failed';
+        orderRecord.Payment_Status__c = 'Open';
         update orderRecord;
 
         SystemLogService.logWarn(
             'PAYMENT_FAILURE',
             'PaymentIntegrationService.applyGatewayResult',
             gatewayResult.message + ' HTTP status: ' + gatewayResult.httpStatusCode,
-            'FAILED',
+            'Open',
             orderRecord.Id,
             null
         );
@@ -71,7 +71,7 @@ public with sharing class PaymentIntegrationService {
 
     private static void handleTechnicalFailure(Order__c orderRecord, String message, Exception e) {
         if (orderRecord != null) {
-            orderRecord.Payment_Status__c = 'Failed';
+            orderRecord.Payment_Status__c = 'Open';
             update orderRecord;
         }
 
@@ -79,7 +79,7 @@ public with sharing class PaymentIntegrationService {
             'PAYMENT_ERROR',
             'PaymentIntegrationService.processPayment',
             message,
-            'FAILED',
+            'Open',
             orderRecord != null ? orderRecord.Id : null,
             null,
             e
