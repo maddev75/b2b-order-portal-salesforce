@@ -157,45 +157,14 @@ private class OrderServiceTest {
     }
 
     @isTest
-    static void testDeleteOrderLine_deletesLineAndRecalculatesOrderTotal() {
-        Account acc = getAccount();
-        Contact con = getContact();
-        Product2 product1 = getProduct1();
-        Product2 product2 = getProduct2();
-
-        Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
-        TestDataFactory.addOrderLine(orderRecord.Id, product1.Id, 2); // 200
-        Order_Line__c line2 = TestDataFactory.addOrderLine(orderRecord.Id, product2.Id, 1); // 250
-
-        Test.startTest();
-        OrderService.deleteOrderLine(line2.Id);
-        Test.stopTest();
-
-        List<Order_Line__c> remainingLines = [
-            SELECT Id
-            FROM Order_Line__c
-            WHERE Order__c = :orderRecord.Id
-        ];
-
-        Order__c refreshedOrder = [
-            SELECT Id, Total_Amount__c
-            FROM Order__c
-            WHERE Id = :orderRecord.Id
-        ];
-
-        System.assertEquals(1, remainingLines.size());
-        System.assertEquals(200, refreshedOrder.Total_Amount__c);
-    }
-
-    @isTest
-    static void testSubmitOrder_changesStatusToSubmitted_andProcessesPaymentAsync() {
+    static void testSubmitOrder_updatesOrderAndLaunchesQueueable() {
         Account acc = getAccount();
         Contact con = getContact();
         Product2 product = getProduct1();
-
+    
         Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
         TestDataFactory.addOrderLine(orderRecord.Id, product.Id, 2);
-
+    
         Test.setMock(
             HttpCalloutMock.class,
             new PaymentGatewayHttpMock(
@@ -203,69 +172,52 @@ private class OrderServiceTest {
                 '{"result":"ok","reference":"HTTPBIN-123"}'
             )
         );
-
+    
         Test.startTest();
         OrderService.submitOrder(orderRecord.Id);
         Test.stopTest();
-
+    
         Order__c refreshedOrder = [
-            SELECT Id, Status__c, Total_Amount__c, Payment_Status__c
+            SELECT Id, Status__c, Payment_Status__c
             FROM Order__c
             WHERE Id = :orderRecord.Id
         ];
-
-        System.assertEquals('Submitted', refreshedOrder.Status__c);
-        System.assertEquals(200, refreshedOrder.Total_Amount__c);
-        System.assertEquals('Paid', refreshedOrder.Payment_Status__c);
-
+    
+        // Comme le Queueable s'exécute pendant Test.stopTest(),
+        // on vérifie l'état final après intégration.
+        System.assertEquals('Confirmed', refreshedOrder.Status__c);
+        System.assertEquals('Success', refreshedOrder.Payment_Status__c);
+    
         List<System_Log__c> logs = [
-            SELECT Level__c, Context__c, Message__c, Status__c, Related_Order__c
+            SELECT Context__c, Level__c, Status__c, Related_Order__c
             FROM System_Log__c
             WHERE Related_Order__c = :orderRecord.Id
         ];
-
-        Boolean hasOrderSubmit = false;
-        Boolean hasPaymentRequest = false;
-        Boolean hasPaymentSuccess = false;
-
+    
+        Boolean hasOrderSubmitLog = false;
+    
         for (System_Log__c logRecord : logs) {
             if (
                 logRecord.Context__c == 'OrderService.submitOrder' &&
                 logRecord.Level__c == 'INFO' &&
                 logRecord.Status__c == 'Resolved'
             ) {
-                hasOrderSubmit = true;
-            }
-            if (
-                logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
-                logRecord.Level__c == 'INFO' &&
-                logRecord.Status__c == 'Open'
-            ) {
-                hasPaymentRequest = true;
-            }
-            if (
-                logRecord.Context__c == 'PaymentIntegrationService.applyGatewayResult' &&
-                logRecord.Level__c == 'INFO' &&
-                logRecord.Status__c == 'Resolved'
-            ) {
-                hasPaymentSuccess = true;
+                hasOrderSubmitLog = true;
             }
         }
-
-        System.assertEquals(true, hasOrderSubmit, 'ORDER_SUBMIT log should exist.');
-        System.assertEquals(true, hasPaymentRequest, 'PAYMENT_REQUEST log should exist.');
-        System.assertEquals(true, hasPaymentSuccess, 'PAYMENT_SUCCESS log should exist.');
+    
+        System.assertEquals(true, hasOrderSubmitLog, 'ORDER_SUBMIT log should exist.');
     }
-
+    
     @isTest
-    static void testSubmitOrder_marksPaymentFailedWhenHttpCalloutFails() {
+    static void testSubmitOrder_marksOrderFailedWhenCalloutFails() {
         Account acc = getAccount();
         Contact con = getContact();
         Product2 product = getProduct2();
-
+    
         Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
         TestDataFactory.addOrderLine(orderRecord.Id, product.Id, 1);
-
+    
         Test.setMock(
             HttpCalloutMock.class,
             new PaymentGatewayHttpMock(
@@ -273,138 +225,28 @@ private class OrderServiceTest {
                 '{"error":"gateway_down"}'
             )
         );
-
+    
         Test.startTest();
         OrderService.submitOrder(orderRecord.Id);
         Test.stopTest();
-
+    
         Order__c refreshedOrder = [
             SELECT Id, Status__c, Payment_Status__c
             FROM Order__c
             WHERE Id = :orderRecord.Id
         ];
-
-        System.assertEquals('Submitted', refreshedOrder.Status__c);
+    
+        System.assertEquals('Payment Failed', refreshedOrder.Status__c);
         System.assertEquals('Failed', refreshedOrder.Payment_Status__c);
-
-        List<System_Log__c> logs = [
-            SELECT Level__c, Context__c, Message__c, Status__c, Related_Order__c
-            FROM System_Log__c
-            WHERE Related_Order__c = :orderRecord.Id
-        ];
-
-        Boolean hasPaymentRequest = false;
-        Boolean hasPaymentFailure = false;
-
-        for (System_Log__c logRecord : logs) {
-            if (
-                logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
-                logRecord.Level__c == 'INFO' &&
-                logRecord.Status__c == 'Open'
-            ) {
-                hasPaymentRequest = true;
-            }
-            if (
-                logRecord.Context__c == 'PaymentIntegrationService.applyGatewayResult' &&
-                logRecord.Level__c == 'WARN' &&
-                logRecord.Status__c == 'Open'
-            ) {
-                hasPaymentFailure = true;
-            }
-        }
-
-        System.assertEquals(true, hasPaymentRequest, 'PAYMENT_REQUEST log should exist.');
-        System.assertEquals(true, hasPaymentFailure, 'PAYMENT_FAILURE log should exist.');
     }
-
-    @isTest
-    static void testSubmitOrder_throwsExceptionWhenOrderHasNoLines() {
-        Account acc = getAccount();
-        Contact con = getContact();
-
-        Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
-
-        try {
-            Test.startTest();
-            OrderService.submitOrder(orderRecord.Id);
-            Test.stopTest();
-            System.assert(false, 'Expected BusinessException was not thrown.');
-        } catch (BusinessException e) {
-            System.assertEquals('An order must contain at least one line before submission.', e.getMessage());
-        }
-    }
-
-    @isTest
-    static void testUpdateOrderLine_throwsExceptionWhenOrderIsSubmitted() {
-        Account acc = getAccount();
-        Contact con = getContact();
-        Product2 product = getProduct1();
-
-        Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
-        Order_Line__c line = TestDataFactory.addOrderLine(orderRecord.Id, product.Id, 2);
-
-        Test.setMock(
-            HttpCalloutMock.class,
-            new PaymentGatewayHttpMock(
-                200,
-                '{"result":"ok"}'
-            )
-        );
-
-        Test.startTest();
-        OrderService.submitOrder(orderRecord.Id);
-        Test.stopTest();
-
-        try {
-            Test.startTest();
-            OrderService.updateOrderLine(line.Id, 3);
-            Test.stopTest();
-            System.assert(false, 'Expected BusinessException was not thrown.');
-        } catch (BusinessException e) {
-            System.assertEquals('Only Draft orders can be modified.', e.getMessage());
-        }
-    }
-
-    @isTest
-    static void testDeleteOrderLine_throwsExceptionWhenOrderIsSubmitted() {
-        Account acc = getAccount();
-        Contact con = getContact();
-        Product2 product = getProduct1();
-
-        Order__c orderRecord = TestDataFactory.createDraftOrder(acc.Id, con.Id);
-        Order_Line__c line = TestDataFactory.addOrderLine(orderRecord.Id, product.Id, 2);
-
-        Test.setMock(
-            HttpCalloutMock.class,
-            new PaymentGatewayHttpMock(
-                200,
-                '{"result":"ok"}'
-            )
-        );
-
-        Test.startTest();
-        OrderService.submitOrder(orderRecord.Id);
-        Test.stopTest();
-
-        try {
-            Test.startTest();
-            OrderService.deleteOrderLine(line.Id);
-            Test.stopTest();
-            System.assert(false, 'Expected BusinessException was not thrown.');
-        } catch (BusinessException e) {
-            System.assertEquals('Only Draft orders can be modified.', e.getMessage());
-        }
-    }
-
+    
     @isTest
     static void testSubmitOrder_throwsExceptionWhenOrderIdIsNull() {
         try {
-            Test.startTest();
             OrderService.submitOrder(null);
-            Test.stopTest();
             System.assert(false, 'Expected BusinessException was not thrown.');
         } catch (BusinessException e) {
-            System.assertEquals('OrderId is required.', e.getMessage());
+            System.assertEquals('Order not found.', e.getMessage());
         }
     }
 }

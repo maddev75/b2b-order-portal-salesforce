@@ -86,7 +86,7 @@ public with sharing class OrderService {
             'ORDER_SUBMIT',
             'OrderService.submitOrder',
             'Order submitted successfully. Payment processing started.',
-            'SUCCESS',
+            'Resolved',
             orderRecord.Id,
             null
         );

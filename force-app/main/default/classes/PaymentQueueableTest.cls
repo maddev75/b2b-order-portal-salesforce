@@ -16,14 +16,14 @@ private class PaymentQueueableTest {
         update orderRecord;
     }
 
-    private static Order__c getSubmittedOrder() {
-        return [
+  private static Order__c getSubmittedOrder() {
+    return [
             SELECT Id, Status__c, Payment_Status__c, Total_Amount__c
             FROM Order__c
-            WHERE Total_Amount__c = 300
+            WHERE Status__c = 'Submitted'
             LIMIT 1
-        ];
-    }
+    	];
+	}
 
     @IsTest
     static void testQueueableProcessesPaymentSuccessfully() {
@@ -47,7 +47,7 @@ private class PaymentQueueableTest {
             WHERE Id = :orderRecord.Id
         ];
 
-        System.assertEquals('Paid', updatedOrder.Payment_Status__c);
+        System.assertEquals('Success', updatedOrder.Payment_Status__c);
 
         List<System_Log__c> logs = [
             SELECT Level__c, Context__c, Message__c, Status__c, Related_Order__c
@@ -62,7 +62,7 @@ private class PaymentQueueableTest {
             if (
                 logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
                 logRecord.Level__c == 'INFO' &&
-                logRecord.Status__c == 'Open'
+                logRecord.Status__c == 'Resolved'
             ) {
                 hasPaymentRequest = true;
             }
@@ -117,7 +117,7 @@ private class PaymentQueueableTest {
             if (
                 logRecord.Context__c == 'PaymentIntegrationService.processPayment' &&
                 logRecord.Level__c == 'INFO' &&
-                logRecord.Status__c == 'Open'
+                logRecord.Status__c == 'Resolved'
             ) {
                 hasPaymentRequest = true;
             }

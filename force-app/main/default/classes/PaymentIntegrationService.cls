@@ -5,17 +5,18 @@ public with sharing class PaymentIntegrationService {
 
         Order__c orderRecord = OrderSelector.getById(orderId);
 
-        SystemLogService.logInfo(
-            'PAYMENT_REQUEST',
-            'PaymentIntegrationService.processPayment',
-            'HTTP payment processing started.',
-            'Open',
-            orderRecord.Id,
-            null
-        );
-
         try {
             PaymentGatewayResult gatewayResult = PaymentGatewayClient.processPayment(orderRecord);
+
+            // log après le callout, pas avant
+            SystemLogService.logInfo(
+                'PAYMENT_REQUEST',
+                'PaymentIntegrationService.processPayment',
+                'HTTP payment processing completed. Response received.',
+                'Resolved',
+                orderRecord.Id,
+                null
+            );
 
             applyGatewayResult(orderRecord, gatewayResult);
 
@@ -42,21 +43,23 @@ public with sharing class PaymentIntegrationService {
         validateGatewayResult(gatewayResult);
 
         if (gatewayResult.isSuccess) {
-            orderRecord.Payment_Status__c = 'Paid';
+            orderRecord.Status__c = 'Confirmed';
+            orderRecord.Payment_Status__c = 'Success';
             update orderRecord;
 
             SystemLogService.logInfo(
                 'PAYMENT_SUCCESS',
                 'PaymentIntegrationService.applyGatewayResult',
                 gatewayResult.message + ' HTTP status: ' + gatewayResult.httpStatusCode,
-                'SUCCESS',
+                'Resolved',
                 orderRecord.Id,
                 null
             );
             return;
         }
 
-        orderRecord.Payment_Status__c = 'Open';
+        orderRecord.Status__c = 'Payment Failed';
+        orderRecord.Payment_Status__c = 'Failed';
         update orderRecord;
 
         SystemLogService.logWarn(
@@ -71,7 +74,8 @@ public with sharing class PaymentIntegrationService {
 
     private static void handleTechnicalFailure(Order__c orderRecord, String message, Exception e) {
         if (orderRecord != null) {
-            orderRecord.Payment_Status__c = 'Open';
+            orderRecord.Status__c = 'Payment Failed';
+            orderRecord.Payment_Status__c = 'Failed';
             update orderRecord;
         }
 
