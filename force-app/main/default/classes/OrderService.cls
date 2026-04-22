@@ -76,12 +76,22 @@ public with sharing class OrderService {
     public static void submitOrder(Id orderId) {
 
         Order__c orderRecord = OrderSelector.getById(orderId);
-        List<Order_Line__c> orderLines = OrderLineSelector.getByOrderId(orderId);
     
-        OrderDomain.validateCanBeSubmitted(orderRecord, orderLines);
-        OrderDomain.recalculateTotal(orderRecord, orderLines);
-        OrderDomain.markAsSubmitted(orderRecord);
+        orderRecord.Status__c = 'Submitted';
+        orderRecord.Payment_Status__c = 'Pending';
     
         update orderRecord;
+    
+        SystemLogService.logInfo(
+            'ORDER_SUBMIT',
+            'OrderService.submitOrder',
+            'Order submitted successfully. Payment processing started.',
+            'Resolved',
+            orderRecord.Id,
+            null
+        );
+    
+        // 👉 C'EST ICI QUE TOUT DÉMARRE
+        System.enqueueJob(new PaymentQueueable(orderRecord.Id));
     }
 }

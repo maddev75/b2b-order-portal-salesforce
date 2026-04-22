@@ -42,4 +42,30 @@ public class TestDataFactory {
     public static Order_Line__c addOrderLine(Id orderId, Id productId, Integer quantity) {
         return OrderService.addOrderLine(orderId, productId, quantity);
     }
+
+    public static Order__c createDraftOrderWithLines(
+        Id accountId,
+        Id contactId,
+        Id productId,
+        Integer quantity
+    ) {
+        Order__c orderRecord = createDraftOrder(accountId, contactId);
+        addOrderLine(orderRecord.Id, productId, quantity);
+
+        return [
+            SELECT Id, Account__c, Contact__c, Status__c, Order_Date__c,
+                   Total_Amount__c, Payment_Status__c
+            FROM Order__c
+            WHERE Id = :orderRecord.Id
+        ];
+    }
+
+    public static Order__c getOrderById(Id orderId) {
+        return [
+            SELECT Id, Account__c, Contact__c, Status__c, Order_Date__c,
+                   Total_Amount__c, Payment_Status__c
+            FROM Order__c
+            WHERE Id = :orderId
+        ];
+    }
 }
