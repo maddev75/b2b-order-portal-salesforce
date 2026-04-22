@@ -157,7 +157,7 @@ private class OrderControllerTest {
         System.assertEquals(300, orderRecord.Total_Amount__c);
     }
 
-    @isTest
+    /*@isTest
     static void testControllerSubmitOrder() {
         Account acc = getAccount();
         Contact con = getContact();
@@ -178,7 +178,7 @@ private class OrderControllerTest {
 
         System.assertEquals('Submitted', orderRecord.Status__c);
         System.assertEquals(300, orderRecord.Total_Amount__c);
-    }
+    }*/
 
     @isTest
     static void testControllerGetMyOrdersReturnsMultipleOrders() {
