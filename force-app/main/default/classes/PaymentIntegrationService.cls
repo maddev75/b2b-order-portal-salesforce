@@ -6,9 +6,9 @@ public with sharing class PaymentIntegrationService {
         Order__c orderRecord = OrderSelector.getById(orderId);
 
         try {
-            PaymentGatewayResult gatewayResult = PaymentGatewayClient.processPayment(orderRecord);
+            PaymentGatewayResult gatewayResult =
+                PaymentGatewayClient.processPayment(orderRecord);
 
-            // log après le callout, pas avant
             SystemLogService.logInfo(
                 'PAYMENT_REQUEST',
                 'PaymentIntegrationService.processPayment',
@@ -35,6 +35,73 @@ public with sharing class PaymentIntegrationService {
                 e
             );
             throw e;
+        }
+    }
+
+    public static void processPaymentWithRetry(Id orderId, Integer retryCount) {
+        validateOrderId(orderId);
+
+        if (retryCount == null) {
+            retryCount = 0;
+        }
+
+        Order__c orderRecord = OrderSelector.getById(orderId);
+
+        try {
+            PaymentGatewayResult gatewayResult =
+                PaymentGatewayClient.processPayment(orderRecord, retryCount);
+
+            SystemLogService.logInfo(
+                'PAYMENT_RETRY_SUCCESS',
+                'PaymentIntegrationService.processPaymentWithRetry',
+                'Retry payment succeeded.',
+                'Resolved',
+                orderRecord.Id,
+                null
+            );
+
+            applyGatewayResult(orderRecord, gatewayResult);
+
+        } catch (Exception e) {
+            Boolean retryable = RetryPolicy.isRetryable(e);
+
+            if (retryable && retryCount < RetryPolicy.getMaxRetries()) {
+                IntegrationLogContext logCtx = new IntegrationLogContext();
+
+                logCtx.status = 'RETRY_PENDING';
+                logCtx.errorMessage =
+                    'Retry scheduled. Attempt: ' + String.valueOf(retryCount + 1);
+                logCtx.retryCount = retryCount + 1;
+                logCtx.relatedOrderId = orderRecord.Id;
+
+                IntegrationLogService.log(logCtx);
+
+                System.enqueueJob(
+                    new PaymentRetryQueueable(
+                        orderId,
+                        retryCount + 1
+                    )
+                );
+
+                return;
+            }
+
+            IntegrationLogContext failedCtx = new IntegrationLogContext();
+
+            failedCtx.status = 'FAILED_FINAL';
+            failedCtx.errorMessage = 'Maximum retry attempts reached.';
+            failedCtx.retryCount = retryCount;
+            failedCtx.relatedOrderId = orderRecord.Id;
+
+            IntegrationLogService.log(failedCtx);
+
+           handleTechnicalFailure(
+               orderRecord,
+               'Retry mechanism failed.',
+               e
+			);
+
+			return;
         }
     }
 
