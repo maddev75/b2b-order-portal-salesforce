@@ -1,17 +1,19 @@
-public with sharing class PaymentQueueable
+public with sharing class PaymentRetryQueueable
 implements Queueable, Database.AllowsCallouts {
 
     private Id orderId;
+    private Integer retryCount;
 
-    public PaymentQueueable(Id orderId) {
+    public PaymentRetryQueueable(Id orderId, Integer retryCount) {
         this.orderId = orderId;
+        this.retryCount = retryCount;
     }
 
     public void execute(QueueableContext context) {
 
         PaymentIntegrationService.processPaymentWithRetry(
             orderId,
-            0
+            retryCount
         );
     }
 }
